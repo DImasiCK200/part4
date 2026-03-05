@@ -56,7 +56,7 @@ describe("GET /api/blogs", () => {
 });
 
 describe("POST /api/blogs", () => {
-  test.only("check that blog is created", async () => {
+  test("check that blog is created", async () => {
     const newBlog = {
       title: "Third blog",
       author: "Dmitry Erofeev",
@@ -74,6 +74,36 @@ describe("POST /api/blogs", () => {
 
     assert.strictEqual(blogsAtEnd.length, initialBlogs.length + 1);
     assert.strictEqual(addedBlog.body.title, newBlog.title);
+  });
+
+  test("check that likes default to 0", async () => {
+    const newBlog = {
+      title: "Third blog",
+      author: "Dmitry Erofeev",
+      url: "https://example.com/first-blog",
+    };
+
+    const addedBlog = await api.post("/api/blogs").send(newBlog);
+
+    assert.strictEqual(addedBlog.body.likes, 0);
+  });
+
+  test.only("check that error if no title", async () => {
+    const newBlog = {
+      author: "Dmitry Erofeev",
+      url: "https://example.com/first-blog",
+    };
+
+    await api.post("/api/blogs").send(newBlog).expect(400);
+  });
+
+  test.only("check that error if no url", async () => {
+    const newBlog = {
+      title: "Third blog",
+      author: "Dmitry Erofeev",
+    };
+
+    await api.post("/api/blogs").send(newBlog).expect(400);
   });
 });
 
