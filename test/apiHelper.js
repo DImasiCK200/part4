@@ -38,4 +38,4 @@ const usersInDb = async () => {
   return users.map((u) => u.toJSON());
 };
 
-module.exports = { initialBlogs, notExistingId, blogsAtDb };
+module.exports = { initialBlogs, notExistingId, blogsAtDb, usersInDb };

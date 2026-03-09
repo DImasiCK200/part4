@@ -128,7 +128,7 @@ describe("DELETE /api/blogs/id", async () => {
   });
 });
 
-describe.only("PUT /api/blogs/id", async () => {
+describe("PUT /api/blogs/id", async () => {
   test("succeed blog changed", async () => {
     const blogsAtStart = await helper.blogsAtDb();
     const blogToPut = blogsAtStart[0];
@@ -141,7 +141,7 @@ describe.only("PUT /api/blogs/id", async () => {
     const blogsAtEnd = await helper.blogsAtDb();
     const updatedBlog = blogsAtEnd.find((blog) => blog.id === blogToPut.id);
 
-    assert.strictEqual(updatedBlog.id, blogToPut.id)
+    assert.strictEqual(updatedBlog.id, blogToPut.id);
     assert.strictEqual(updatedBlog.likes, blogToPut.likes + 1);
   });
 });
