@@ -9,7 +9,7 @@ const helper = require("./apiHelper");
 
 const api = supertest(app);
 
-describe.only("when there is initially one user in db", () => {
+describe("when there is initially one user in db", () => {
   beforeEach(async () => {
     await User.deleteMany({});
 

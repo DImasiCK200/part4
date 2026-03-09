@@ -1,16 +1,43 @@
 const assert = require("node:assert");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const { test, after, beforeEach, describe } = require("node:test");
 const mongoose = require("mongoose");
 const supertest = require("supertest");
+
 const app = require("../app");
 const Blog = require("../models/blog");
+const User = require("../models/user");
 const helper = require("./apiHelper");
 
 const api = supertest(app);
 
+let token;
+
 beforeEach(async () => {
   await Blog.deleteMany({});
-  await Blog.insertMany(helper.initialBlogs);
+  await User.deleteMany({});
+
+  const passwordHash = await bcrypt.hash("sekret", 10);
+  const user = new User({ username: "root", passwordHash });
+
+  await user.save();
+
+  const blogsToInsert = helper.initialBlogs.map((blog) => {
+    blog.user = user._id;
+    return blog;
+  });
+
+  await Blog.insertMany(blogsToInsert);
+
+  const userForToken = {
+    username: user.username,
+    id: user._id,
+  };
+
+  token = jwt.sign(userForToken, process.env.SECRET, {
+    expiresIn: 60 * 60,
+  });
 });
 
 describe("GET /api/blogs", () => {
@@ -61,7 +88,7 @@ describe("GET /api/blogs/id", () => {
 });
 
 describe("POST /api/blogs", () => {
-  test("check that blog is created", async () => {
+  test("check that blog is created with valid token", async () => {
     const newBlog = {
       title: "Third blog",
       author: "Dmitry Erofeev",
@@ -71,6 +98,7 @@ describe("POST /api/blogs", () => {
 
     const addedBlog = await api
       .post("/api/blogs")
+      .set({ authorization: `Bearer ${token}` })
       .send(newBlog)
       .expect(201)
       .expect("Content-Type", /application\/json/);
@@ -81,6 +109,26 @@ describe("POST /api/blogs", () => {
     assert.strictEqual(addedBlog.body.title, newBlog.title);
   });
 
+  test("check that blog is not created with invalid token", async () => {
+    const newBlog = {
+      title: "Third blog",
+      author: "Dmitry Erofeev",
+      url: "https://example.com/first-blog",
+      likes: 2,
+    };
+
+    await api
+      .post("/api/blogs")
+      .set({ authorization: `Bearer ${token}f` })
+      .send(newBlog)
+      .expect(401)
+      .expect("Content-Type", /application\/json/);
+
+    const blogsAtEnd = await helper.blogsAtDb();
+
+    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length);
+  });
+
   test("check that likes default to 0", async () => {
     const newBlog = {
       title: "Third blog",
@@ -88,7 +136,10 @@ describe("POST /api/blogs", () => {
       url: "https://example.com/first-blog",
     };
 
-    const addedBlog = await api.post("/api/blogs").send(newBlog);
+    const addedBlog = await api
+      .post("/api/blogs")
+      .send(newBlog)
+      .set({ authorization: `Bearer ${token}` });
 
     assert.strictEqual(addedBlog.body.likes, 0);
   });
@@ -99,7 +150,11 @@ describe("POST /api/blogs", () => {
       url: "https://example.com/first-blog",
     };
 
-    await api.post("/api/blogs").send(newBlog).expect(400);
+    await api
+      .post("/api/blogs")
+      .set({ authorization: `Bearer ${token}` })
+      .send(newBlog)
+      .expect(400);
   });
 
   test("status 400 (Bad Request) if no url", async () => {
@@ -108,7 +163,11 @@ describe("POST /api/blogs", () => {
       author: "Dmitry Erofeev",
     };
 
-    await api.post("/api/blogs").send(newBlog).expect(400);
+    await api
+      .post("/api/blogs")
+      .set({ authorization: `Bearer ${token}` })
+      .send(newBlog)
+      .expect(400);
   });
 });
 
@@ -117,7 +176,10 @@ describe("DELETE /api/blogs/id", async () => {
     const blogsAtStart = await helper.blogsAtDb();
     const blogToDelete = blogsAtStart[0];
 
-    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .set({ authorization: `Bearer ${token}` })
+      .expect(204);
 
     const blogsAtEnd = await helper.blogsAtDb();
 
