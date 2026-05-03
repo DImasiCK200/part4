@@ -9,7 +9,11 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node index.js",
     "dev": "cross-env NODE_ENV=development node --watch index.js",
-    "test": "cross-env NODE_ENV=test node --test"
+    "test": "cross-env NODE_ENV=test node --test",
+    "start:test" : "cross-env NODE_ENV=test node --watch index.js",
+    "build:ui": "rm -rf dist && cd ../part2-notes-frontend && npm run build && cp -r dist ../part3",
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push",
+    "lint": "eslint ."
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
