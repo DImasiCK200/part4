@@ -6,6 +6,7 @@ const middleware = require("./utils/middleware");
 const blogRouter = require("./controllers/blogs");
 const usersRouter = require("./controllers/users");
 const loginRouter = require("./controllers/login");
+const path = require("path");
 
 const app = express();
 
@@ -30,8 +31,17 @@ app.use("/api/users", usersRouter);
 app.use("/api/login", loginRouter);
 
 if (process.env.NODE_ENV === "test") {
-  const testingRouter = require("./controllers/testing")
-  app.use("/api/testing", testingRouter)
+  const testingRouter = require("./controllers/testing");
+  app.use("/api/testing", testingRouter);
+}
+
+if (process.env.NODE_ENV === "production") {
+  console.log("*");
+
+  app.use(express.static(path.join(__dirname, "../client/dist")));
+  app.get("/*splat", (req, res) => {
+    res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+  });
 }
 
 app.use(middleware.unknownEndpoint);
